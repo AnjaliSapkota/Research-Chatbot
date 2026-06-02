@@ -1,24 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Research Assistant</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Research Assistant</title>
+
+  <link rel="stylesheet" href="style.css"/>
 </head>
 
 <body>
 
-<h2>AI Research Chatbot</h2>
+<div class="app-layout">
 
-<input type="file" id="fileUpload">
-<button onclick="upload()">Upload PDF</button>
+  <!-- ───────── Sidebar ───────── -->
+  <aside class="sidebar">
 
-<br><br>
+    <div class="sidebar-brand">
+      <h1>Research<span>.</span>AI</h1>
+    </div>
 
-<input type="text" id="question" placeholder="Ask question">
-<button onclick="ask()">Ask</button>
+    <div class="sidebar-section">
 
-<p id="answer"></p>
+      <p class="sidebar-label">Documents</p>
 
-<script src="app.js"></script>
+      <!-- Upload Zone -->
+      <div class="upload-zone" id="uploadZone">
+        <span class="upload-icon">📂</span>
+
+        <p>
+          <strong>Drop your PDF here</strong><br/>
+          or click to browse
+        </p>
+
+        <input type="file" id="fileUpload" accept=".pdf" multiple />
+      </div>
+
+      <!-- Progress -->
+      <div class="upload-progress" id="uploadProgress">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <p class="progress-label" id="progressLabel"></p>
+      </div>
+
+      <!-- File List -->
+      <div class="file-list" id="fileList"></div>
+
+    </div>
+
+
+
+  </aside>
+
+  <!-- ───────── Main Chat ───────── -->
+  <main class="main">
+
+    <header class="chat-header">
+      <h2>Ask about your <em>research</em></h2>
+    </header>
+
+    <!-- Messages -->
+    <div class="chat-messages" id="chatMessages">
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState">
+        <h3>Start with a <em>document</em></h3>
+      </div>
+
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input-area">
+
+      <div class="input-bar">
+
+        <textarea
+          id="question"
+          rows="1"
+          placeholder="Ask a question about your document..."
+        ></textarea>
+
+        <div class="input-actions">
+
+          <button class="btn-icon" onclick="upload()" title="Attach file">
+            📎
+          </button>
+
+          <button class="btn-send" id="sendBtn" onclick="ask()" disabled>
+            ➤
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
 
 </body>
 </html>
