@@ -68,23 +68,41 @@ function processFile(file) {
 }
 
 function simulateUpload(file) {
-  uploadProgress.style.display = 'block';
-  progressBar.style.width = '0%';
-  progressLabel.textContent = `Uploading ${file.name}…`;
 
-  let pct = 0;
-  const iv = setInterval(() => {
-    pct += Math.random() * 22;
-    if (pct >= 100) {
-      pct = 100;
-      clearInterval(iv);
-      setTimeout(() => {
-        uploadProgress.style.display = 'none';
-        addFileToState(file);
-      }, 300);
-    }
-    progressBar.style.width = `${Math.min(pct, 100)}%`;
-  }, 120);
+  uploadProgress.style.display = 'block';
+  progressBar.style.width = '30%';
+  progressLabel.textContent = `Uploading ${file.name}...`;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  fetch("/upload", {
+    method: "POST",
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+
+    progressBar.style.width = '100%';
+
+    setTimeout(() => {
+      uploadProgress.style.display = 'none';
+      addFileToState(file);
+
+      addMessage(
+        'ai',
+        `📄 <strong>${data.filename}</strong> uploaded successfully.<br><br>
+         <b>Preview:</b><br>${data.text_preview.slice(0, 400)}...`
+      );
+
+    }, 400);
+
+  })
+  .catch(err => {
+    console.error(err);
+    showToast("Upload failed", "error");
+    uploadProgress.style.display = 'none';
+  });
 }
 
 function addFileToState(file) {
