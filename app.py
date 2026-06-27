@@ -7,11 +7,14 @@ import os
 import shutil
 import fitz
 import uuid
-
+from backend.database import init_db
 from regex import search
 from backend.rag import extract_text, store_document, search
 
+
+
 app = FastAPI(title="Research Chatbot")
+init_db()
 
 # Static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -51,10 +54,10 @@ async def upload_pdf(file: UploadFile = File(...)):
     num_chunks = store_document(file_id, text)
 
     return {
-        "file_id": file_id,
+        "status": "success",
+        "document_id": file_id,
         "filename": file.filename,
-        "chunks": num_chunks,
-        "status": "indexed"
+        "chunks": num_chunks
     }
 
 # Ask Question
