@@ -2,9 +2,10 @@ const state = {
   files: [],
   messages: [],
   isTyping: false,
+  documentId: null,
 };
 
-/* ── DOM refs ── */
+// DOM refercences
 const chatMessages  = document.getElementById('chatMessages');
 const questionInput = document.getElementById('question');
 const sendBtn       = document.getElementById('sendBtn');
@@ -16,9 +17,7 @@ const progressBar   = document.getElementById('progressBar');
 const progressLabel = document.getElementById('progressLabel');
 const emptyState    = document.getElementById('emptyState');
 
-/* ─────────────────────────────────────────────
-   File Upload
-   ───────────────────────────────────────────── */
+// File Upload
 
 function upload() {
   fileUpload.click();
@@ -69,8 +68,8 @@ function processFile(file) {
 
 function simulateUpload(file) {
 
-  uploadProgress.style.display = 'block';
-  progressBar.style.width = '30%';
+  uploadProgress.style.display = "block";
+  progressBar.style.width = "20%";
   progressLabel.textContent = `Uploading ${file.name}...`;
 
   const formData = new FormData();
@@ -83,36 +82,50 @@ function simulateUpload(file) {
   .then(res => res.json())
   .then(data => {
 
-    progressBar.style.width = '100%';
+    progressBar.style.width = "100%";
+
+    state.documentId = data.document_id;
 
     setTimeout(() => {
-      uploadProgress.style.display = 'none';
+
+      uploadProgress.style.display = "none";
+
       addFileToState(file);
 
       addMessage(
-        'ai',
-        `📄 <strong>${data.filename}</strong> uploaded successfully.<br><br>
-         <b>Preview:</b><br>${data.text_preview.slice(0, 400)}...`
+        "ai",
+        `📄 <strong>${data.filename}</strong> uploaded successfully.<br>
+        Document indexed into ${data.chunks} chunks.`
       );
 
     }, 400);
 
   })
   .catch(err => {
+
     console.error(err);
+
+    uploadProgress.style.display = "none";
+
     showToast("Upload failed", "error");
-    uploadProgress.style.display = 'none';
+
   });
+
 }
 
 function addFileToState(file) {
-  const id = Date.now() + '-' + Math.random().toString(36).slice(2);
-  state.files.push({ id, name: file.name, file });
-  renderFileList();
-  showToast(`${file.name} ready.`, 'success');
 
-  /* Add a system message into chat */
-  addMessage('ai', `📄 <strong>${file.name}</strong> has been loaded. You can now ask questions about its contents.`);
+  const id = Date.now() + "-" + Math.random().toString(36).slice(2);
+
+  state.files.push({
+    id,
+    name: file.name,
+    file
+  });
+
+  renderFileList();
+
+  showToast(`${file.name} uploaded successfully.`, "success");
 }
 
 function renderFileList() {
@@ -137,27 +150,95 @@ function removeFile(id) {
   showToast(`${f.name} removed.`);
 }
 
-/* ─────────────────────────────────────────────
-   Messaging
-   ───────────────────────────────────────────── */
+  //  Messaging
 
-function ask() {
+async function ask() {
+
   const text = questionInput.value.trim();
+
   if (!text || state.isTyping) return;
 
-  if (state.files.length === 0) {
-    showToast('Upload a PDF first so I have context to search.', 'error');
-    questionInput.focus();
+  if (!state.documentId) {
+
+    showToast("Upload a PDF first.", "error");
     return;
+
   }
 
-  addMessage('user', escapeHtml(text));
-  questionInput.value = '';
+  addMessage("user", escapeHtml(text));
+
+  questionInput.value = "";
+
   autoResize();
+
   sendBtn.disabled = true;
 
-  showEmptyState(false);
-  simulateAIResponse(text);
+  showTyping();
+
+  try {
+
+    const response = await fetch("/ask", {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+
+        document_id: state.documentId,
+
+        question: text
+
+      })
+
+    });
+
+const data = await response.json();
+
+hideTyping();
+
+let html = `<div>${escapeHtml(data.answer)}</div>`;
+
+if (data.sources && data.sources.length > 0) {
+
+    html += "<hr>";
+    html += "<b>Sources used:</b>";
+
+    data.sources.forEach((chunk, i) => {
+
+        html += `
+            <div class="citation" style="
+                margin-top:10px;
+                padding:10px;
+                border-left:4px solid #4f46e5;
+                background:#f5f5f5;
+                border-radius:6px;
+            ">
+                <b>Chunk ${i + 1}</b><br>
+                ${escapeHtml(chunk)}
+            </div>
+        `;
+
+    });
+
+}
+
+addMessage("ai", html);
+
+  }
+
+  catch(error){
+
+    hideTyping();
+
+    console.error(error);
+
+    addMessage("ai","Something went wrong.");
+
+  }
+
 }
 
 function addMessage(role, html) {
@@ -216,43 +297,7 @@ function hideTyping() {
   sendBtn.disabled = false;
 }
 
-/* ─────────────────────────────────────────────
-   Simulated AI response
-   (Replace this block with your real API call)
-   ───────────────────────────────────────────── */
-
-const MOCK_RESPONSES = [
-  q => `Based on the uploaded document${state.files.length > 1 ? 's' : ''}, here's what I found regarding <em>"${q}"</em>:\n\nThe text discusses this concept in the context of the broader argument presented in the paper. Key points include a multi-step analysis of the underlying mechanisms and comparative data from related studies.\n\n<span class="citation">§ 2.1 — p. 4</span> <span class="citation">§ 4.3 — p. 11</span>`,
-  q => `Great question about <em>"${q}"</em>. The document references several supporting data points:\n\n1. The methodology section outlines a controlled experimental design.\n2. Results indicate a statistically significant correlation.\n3. The authors note limitations in sample size.\n\n<span class="citation">Table 3 — p. 8</span>`,
-  q => `Searching through the loaded PDF${state.files.length > 1 ? 's' : ''} for <em>"${q}"</em>…\n\nI found a relevant passage in the introduction that directly addresses this. The authors frame the problem using prior literature and propose a novel framework to resolve existing gaps in the field.\n\n<span class="citation">Introduction — p. 2</span> <span class="citation">Discussion — p. 14</span>`,
-];
-
-function simulateAIResponse(query) {
-  showTyping();
-  const delay = 1200 + Math.random() * 1000;
-
-  setTimeout(() => {
-    hideTyping();
-    const pick = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)];
-    addMessage('ai', pick(escapeHtml(query)));
-  }, delay);
-}
-
-/* ─────────────────────────────────────────────
-   Suggestion chips
-   ───────────────────────────────────────────── */
-
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    questionInput.value = chip.textContent;
-    autoResize();
-    questionInput.focus();
-  });
-});
-
-/* ─────────────────────────────────────────────
-   Input handling
-   ───────────────────────────────────────────── */
+  //  Input handling
 
 questionInput.addEventListener('input', autoResize);
 questionInput.addEventListener('keydown', e => {
@@ -270,9 +315,7 @@ function autoResize() {
   sendBtn.disabled = !hasText || state.isTyping;
 }
 
-/* ─────────────────────────────────────────────
-   Helpers
-   ───────────────────────────────────────────── */
+  //  Helpers
 
 function scrollToBottom() {
   requestAnimationFrame(() => {
