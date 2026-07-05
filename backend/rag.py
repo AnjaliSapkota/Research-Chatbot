@@ -1,6 +1,7 @@
 import fitz
 import os
 import faiss
+from numpy import indices
 from sentence_transformers import SentenceTransformer
 from backend.database import save_chunks, get_chunk
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -17,8 +18,8 @@ print("Embedding model loaded.")
 
 
 text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=800,
-    chunk_overlap=150,
+    chunk_size=300,
+    chunk_overlap=50,
     separators=[
         "\n\n",
         "\n",
@@ -97,11 +98,13 @@ def store_document(document_id, text):
         os.path.join(VECTOR_DIR, f"{document_id}.index")
     )
 
+    print(f"Stored {len(chunks)} chunks.")
+    
     return len(chunks)
 
 
 # Semantic Search relevant chunks
-def search(document_id, question, k=3):
+def search(document_id, question, k=5):
 
     index_path = os.path.join(
         VECTOR_DIR,
@@ -124,6 +127,9 @@ def search(document_id, question, k=3):
     # Search
     distances, indices = index.search(question_vector, k)
 
+    print("Similarity Scores:", distances)
+    print("Retrieved Indices:", indices)
+
     results = []
 
     for idx in indices[0]:
@@ -133,4 +139,11 @@ def search(document_id, question, k=3):
         if chunk:
             results.append(chunk)
 
+    print("\nRetrieved Chunks:")
+    print("=" * 80)
+
+    for i, chunk in enumerate(results):
+        print(f"Chunk {i+1}:")
+        print(chunk[:300])
+        print("-" * 80)
     return results
