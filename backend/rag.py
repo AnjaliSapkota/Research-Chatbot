@@ -16,20 +16,6 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 print("Embedding model loaded.")
 
-
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=300,
-    chunk_overlap=50,
-    separators=[
-        "\n\n",
-        "\n",
-        ". ",
-        " ",
-        ""
-    ]
-)
-
-
 #  Extract text
 def extract_text(pdf_path):
     document = fitz.open(pdf_path)
@@ -41,6 +27,18 @@ def extract_text(pdf_path):
     document.close()
     return text
 
+# split
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=300,
+    chunk_overlap=50,
+    separators=[
+        "\n\n",
+        "\n",
+        ". ",
+        " ",
+        ""
+    ]
+)
 
 # Chunk text
 def chunk_text(text):
@@ -54,7 +52,7 @@ def chunk_text(text):
     return text_splitter.split_text(text)
 
 
-# Create embeddings
+# Create embeddings - covert chunk to vector representation using sentence-transformer all-MiniLM-L6-v2
 
 def generate_embeddings(chunks):
 
@@ -76,7 +74,7 @@ def create_faiss_index(vectors):
     return index
 
 
-# Store document
+# Store document - stores only vectors in FAISS and chunks (document id, chunk index, chunk text) in SQLite. The original PDF is not stored.
 def store_document(document_id, text):
 
     # Split document
@@ -103,7 +101,7 @@ def store_document(document_id, text):
     return len(chunks)
 
 
-# Semantic Search relevant chunks
+# Semantic Search relevant chunks - FAISS index is used to find the most relevant chunks based on the question (compares quetion vector with chunk vectors using cosine similarity). The top k chunks are returned.
 def search(document_id, question, k=5):
 
     index_path = os.path.join(

@@ -12,42 +12,27 @@ from backend.database import init_db
 from backend.rag import extract_text, store_document, search
 from backend.llm import generate_answer
 
-# ---------------------------------------------------
 # FastAPI App
-# ---------------------------------------------------
-
 app = FastAPI(title="Research Chatbot")
 
 # Initialize SQLite database
 init_db()
 
-# ---------------------------------------------------
 # Static & Templates
-# ---------------------------------------------------
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
-# ---------------------------------------------------
 # Upload Folder
-# ---------------------------------------------------
-
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# ---------------------------------------------------
 # Request Models
-# ---------------------------------------------------
-
 class QuestionRequest(BaseModel):
     document_id: str
     question: str
 
-# ---------------------------------------------------
 # Home Page
-# ---------------------------------------------------
-
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
 
@@ -56,10 +41,7 @@ async def home(request: Request):
         {"request": request}
     )
 
-# ---------------------------------------------------
 # Upload PDF
-# ---------------------------------------------------
-
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
 
@@ -107,10 +89,7 @@ async def upload_pdf(file: UploadFile = File(...)):
             "message": str(e)
         }
 
-# ---------------------------------------------------
 # Ask Question
-# ---------------------------------------------------
-
 @app.post("/ask")
 async def ask(data: QuestionRequest):
 
@@ -136,9 +115,7 @@ async def ask(data: QuestionRequest):
         "sources": chunks
     }
 
-# ---------------------------------------------------
 # Health Check
-# ---------------------------------------------------
 
 @app.get("/health")
 async def health():
@@ -147,9 +124,7 @@ async def health():
         "status": "running"
     }
 
-# ---------------------------------------------------
 # Run App
-# ---------------------------------------------------
 
 if __name__ == "__main__":
 
